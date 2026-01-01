@@ -4,7 +4,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 
 const app = express();
-app.use(cors({ origin: true }));
+app.use(cors({ origin: '*', credentials: true }));
 
 // Explicit CORS headers for Vercel compatibility
 app.use((req, res, next) => {
