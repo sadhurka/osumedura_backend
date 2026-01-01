@@ -71,18 +71,41 @@ app.post('/products', async (req, res) => {
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/pharmacy';
 const DB_NAME = process.env.MONGODB_DB || 'pharmacy';
 
-const connectWithRetry = async () => {
-  try {
-    await mongoose.connect(MONGODB_URI, { dbName: DB_NAME });
-    console.log('MongoDB connected');
-  } catch (err) {
-    console.error('MongoDB connection error:', err?.message || err);
-    console.error('MONGODB_URI:', MONGODB_URI);
-    console.error('DB_NAME:', DB_NAME);
-    setTimeout(connectWithRetry, 5000);
-  }
-};
 
-connectWithRetry();
+// Vercel: Use global connection reuse to avoid reconnecting on every invocation
+let cached = global.mongoose;
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+async function connectWithRetry() {
+  if (cached.conn) return cached.conn;
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGODB_URI, { dbName: DB_NAME })
+      .then((mongoose) => {
+        console.log('MongoDB connected');
+        return mongoose;
+      })
+      .catch((err) => {
+        console.error('MongoDB connection error:', err?.message || err);
+        console.error('MONGODB_URI:', MONGODB_URI);
+        console.error('DB_NAME:', DB_NAME);
+        cached.promise = null;
+        throw err;
+      });
+  }
+  cached.conn = await cached.promise;
+  return cached.conn;
+}
+
+// Always connect before handling a request (for Vercel serverless)
+app.use(async (req, res, next) => {
+  try {
+    await connectWithRetry();
+    next();
+  } catch (err) {
+    res.status(503).json({ error: 'Database connection failed' });
+  }
+});
 
 export default app;
