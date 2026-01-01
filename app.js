@@ -36,7 +36,8 @@ app.get('/', async (_req, res) => {
   try {
     res.json({ ok: true, message: 'osumedura-backend API is running', dbState: mongoose.connection.readyState });
   } catch (err) {
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Root route error:', err);
+    res.status(500).json({ error: 'Internal server error', details: err?.message || err });
   }
 });
 
@@ -48,7 +49,8 @@ app.get('/health', async (_req, res) => {
     const dbName = mongoose.connection?.name || mongoose.connection?.db?.databaseName || null;
     res.json({ ok: true, dbState: states[ready] ?? ready, dbName });
   } catch (err) {
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Health route error:', err);
+    res.status(500).json({ error: 'Internal server error', details: err?.message || err });
   }
 });
 
@@ -61,6 +63,7 @@ app.get('/products', async (_req, res) => {
     const items = await Product.find({}).sort({ createdAt: -1 }).lean();
     res.json(items);
   } catch (err) {
+    console.error('Products GET error:', err);
     res.status(500).json({ error: 'Failed to load products', details: err?.message || err });
   }
 });
@@ -75,6 +78,7 @@ app.post('/products', async (req, res) => {
     const docs = await Product.insertMany(payload);
     res.status(201).json(docs);
   } catch (err) {
+    console.error('Products POST error:', err);
     res.status(400).json({ error: 'Failed to create products', details: err?.message || err });
   }
 });
@@ -116,7 +120,8 @@ app.use(async (req, res, next) => {
     await connectWithRetry();
     next();
   } catch (err) {
-    res.status(503).json({ error: 'Database connection failed' });
+    console.error('Database connection middleware error:', err);
+    res.status(503).json({ error: 'Database connection failed', details: err?.message || err });
   }
 });
 
