@@ -4,7 +4,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: true }));
 app.use(express.json());
 
 // Mongo models
