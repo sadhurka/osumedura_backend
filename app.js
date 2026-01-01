@@ -5,6 +5,17 @@ import mongoose from 'mongoose';
 
 const app = express();
 app.use(cors({ origin: true }));
+
+// Explicit CORS headers for Vercel compatibility
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Change to your frontend URL for more security
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
 app.use(express.json());
 
 // Mongo models
