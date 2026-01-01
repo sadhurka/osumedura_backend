@@ -18,7 +18,6 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 
-// Mongo models
 const productSchema = new mongoose.Schema({
   name: String,
   price: Number,
@@ -31,17 +30,28 @@ const productSchema = new mongoose.Schema({
 
 const Product = mongoose.model('osumedura', productSchema);
 
+
 // Root route for API status
-app.get('/', (_req, res) => {
-  res.json({ ok: true, message: 'osumedura-backend API is running', dbState: mongoose.connection.readyState });
+app.get('/', async (_req, res) => {
+  try {
+    res.json({ ok: true, message: 'osumedura-backend API is running', dbState: mongoose.connection.readyState });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.get('/health', (_req, res) => {
-  const states = ['disconnected', 'connected', 'connecting', 'disconnecting', 'unauthorized', 'unknown'];
-  const ready = mongoose.connection.readyState;
-  const dbName = mongoose.connection?.name || mongoose.connection?.db?.databaseName || null;
-  res.json({ ok: true, dbState: states[ready] ?? ready, dbName });
+
+app.get('/health', async (_req, res) => {
+  try {
+    const states = ['disconnected', 'connected', 'connecting', 'disconnecting', 'unauthorized', 'unknown'];
+    const ready = mongoose.connection.readyState;
+    const dbName = mongoose.connection?.name || mongoose.connection?.db?.databaseName || null;
+    res.json({ ok: true, dbState: states[ready] ?? ready, dbName });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
+
 
 app.get('/products', async (_req, res) => {
   try {
@@ -51,9 +61,10 @@ app.get('/products', async (_req, res) => {
     const items = await Product.find({}).sort({ createdAt: -1 }).lean();
     res.json(items);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to load products' });
+    res.status(500).json({ error: 'Failed to load products', details: err?.message || err });
   }
 });
+
 
 app.post('/products', async (req, res) => {
   try {
@@ -64,7 +75,7 @@ app.post('/products', async (req, res) => {
     const docs = await Product.insertMany(payload);
     res.status(201).json(docs);
   } catch (err) {
-    res.status(400).json({ error: 'Failed to create products' });
+    res.status(400).json({ error: 'Failed to create products', details: err?.message || err });
   }
 });
 
@@ -72,10 +83,11 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/pharma
 const DB_NAME = process.env.MONGODB_DB || 'pharmacy';
 
 
-// Vercel: Use global connection reuse to avoid reconnecting on every invocation
-let cached = global.mongoose;
+
+// Vercel: Use globalThis for connection reuse to avoid reconnecting on every invocation
+let cached = globalThis.mongoose;
 if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
+  cached = globalThis.mongoose = { conn: null, promise: null };
 }
 
 async function connectWithRetry() {
