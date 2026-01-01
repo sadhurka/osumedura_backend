@@ -1,3 +1,7 @@
+// Root route for API status
+app.get('/', (_req, res) => {
+  res.json({ ok: true, message: 'osumedura-backend API is running', dbState: mongoose.connection.readyState });
+});
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -68,6 +72,9 @@ const connectWithRetry = async () => {
     console.log('MongoDB connected');
   } catch (err) {
     console.error('MongoDB connection error:', err?.message || err);
+    // Log environment info for debugging
+    console.error('MONGODB_URI:', MONGODB_URI);
+    console.error('DB_NAME:', DB_NAME);
     setTimeout(connectWithRetry, 5000);
   }
 };
