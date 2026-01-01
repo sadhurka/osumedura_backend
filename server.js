@@ -8,19 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve frontend static files in production
-import path from 'path';
-import { fileURLToPath } from 'url';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const frontendBuildPath = path.join(__dirname, '../frontend/dist');
-app.use(express.static(frontendBuildPath));
-
-// Fallback to index.html for SPA
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api') || req.path.startsWith('/products') || req.path.startsWith('/health')) return next();
-  res.sendFile(path.join(frontendBuildPath, 'index.html'));
-});
+// ...frontend static file serving removed for Vercel backend-only deployment...
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/pharmacy';
 const DB_NAME = process.env.MONGODB_DB || 'pharmacy'; // default to 'pharmacy'
@@ -84,8 +72,18 @@ const connectWithRetry = async () => {
   }
 };
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`API listening on port ${PORT}`);  
+
+// Only start the server if not running in Vercel (i.e., not imported as a module)
+if (process.env.VERCEL === undefined && process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`API listening on port ${PORT}`);
+    connectWithRetry();
+  });
+} else {
+  // For Vercel: connect to DB on cold start
   connectWithRetry();
-});
+}
+
+// For Vercel: export the app as default
+export default app;
