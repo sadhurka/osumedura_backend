@@ -58,7 +58,8 @@ app.get('/health', async (_req, res) => {
 app.get('/products', async (_req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ error: 'Database not connected' });
+      console.error('Database not connected. Mongoose readyState:', mongoose.connection.readyState);
+      return res.status(503).json({ error: 'Database not connected', dbState: mongoose.connection.readyState });
     }
     const items = await Product.find({}).sort({ createdAt: -1 }).lean();
     res.json(items);
@@ -121,6 +122,8 @@ app.use(async (req, res, next) => {
     next();
   } catch (err) {
     console.error('Database connection middleware error:', err);
+    console.error('MONGODB_URI:', MONGODB_URI);
+    console.error('DB_NAME:', DB_NAME);
     res.status(503).json({ error: 'Database connection failed', details: err?.message || err });
   }
 });
