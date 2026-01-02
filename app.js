@@ -57,9 +57,6 @@ app.get('/health', async (_req, res) => {
 
 app.get('/products', async (_req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ error: 'Database not connected' });
-    }
     const items = await Product.find({}).sort({ createdAt: -1 }).lean();
     res.json(items);
   } catch (err) {
@@ -71,9 +68,6 @@ app.get('/products', async (_req, res) => {
 
 app.post('/products', async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ error: 'Database not connected' });
-    }
     const payload = Array.isArray(req.body) ? req.body : [req.body];
     const docs = await Product.insertMany(payload);
     res.status(201).json(docs);
