@@ -61,6 +61,8 @@ app.get('/products', async (_req, res) => {
     res.json(items);
   } catch (err) {
     console.error('Products GET error:', err);
+    console.error('Full error object:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
+    console.error('Mongoose connection state:', mongoose.connection.readyState);
     res.status(500).json({ error: 'Failed to load products', details: err?.message || err });
   }
 });
